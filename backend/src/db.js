@@ -1,75 +1,128 @@
-// Koneksi database SQLite + inisialisasi skema.
-// Menggunakan modul bawaan Node.js `node:sqlite` (DatabaseSync) — TANPA kompilasi
-// atau install native module, jadi jalan di semua OS asalkan Node.js >= 22.5.
-// Arsitektur dibuat lewat satu modul ini supaya mudah diganti ke PostgreSQL nanti
-// (cukup ganti driver & sesuaikan query). Lihat README bagian "Migrasi ke PostgreSQL".
-import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import fs from 'fs';
+// Koneksi database PostgreSQL (Supabase) memakai driver `pg`.
+// Semua akses DB terpusat di sini. Ekspor:
+//   - query(text, params)         -> jalankan 1 query, kembalikan { rows, rowCount }
+//   - satu(text, params)          -> kembalikan baris pertama (atau undefined)
+//   - semua(text, params)         -> kembalikan array semua baris
+//   - denganTransaksi(async fn)   -> jalankan fn(client) dalam 1 transaksi (BEGIN/COMMIT/ROLLBACK)
+//   - initSchema()                -> buat tabel bila belum ada
+//
+// Koneksi diambil dari env DATABASE_URL (connection string Supabase).
+import 'dotenv/config';
+import pg from 'pg';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { Pool, types } = pg;
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'erp.db');
+// pg mengembalikan NUMERIC (OID 1700) & BIGINT (OID 20) sebagai string.
+// Parse ke number agar konsisten dengan perhitungan di frontend (PPN, total, dll).
+types.setTypeParser(1700, (v) => (v === null ? null : parseFloat(v)));
+types.setTypeParser(20, (v) => (v === null ? null : parseInt(v, 10)));
 
-// Pastikan folder data ada
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('⚠️  DATABASE_URL belum di-set. Salin .env.example menjadi .env lalu isi connection string Supabase.');
+}
 
-const db = new DatabaseSync(dbPath);
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
+export const pool = new Pool({
+  connectionString,
+  // Supabase butuh SSL. rejectUnauthorized:false agar tidak perlu sertifikat lokal.
+  ssl: connectionString && !connectionString.includes('localhost')
+    ? { rejectUnauthorized: false }
+    : false,
+  max: 10,
+});
+
+// Jalankan satu query.
+export function query(text, params) {
+  return pool.query(text, params);
+}
+
+// Ambil satu baris (atau undefined).
+export async function satu(text, params) {
+  const { rows } = await pool.query(text, params);
+  return rows[0];
+}
+
+// Ambil semua baris.
+export async function semua(text, params) {
+  const { rows } = await pool.query(text, params);
+  return rows;
+}
+
+// Jalankan sekumpulan operasi dalam satu transaksi.
+// fn menerima objek client dengan method .query(text, params).
+export async function denganTransaksi(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const hasil = await fn(client);
+    await client.query('COMMIT');
+    return hasil;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
 
 // ---------------------------------------------------------------------------
-// Skema tabel
+// Skema tabel (sintaks PostgreSQL).
 // ---------------------------------------------------------------------------
-export function initSchema() {
-  db.exec(`
-    -- Cabang toko
+export async function initSchema() {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS cabang (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      nama       TEXT NOT NULL,
-      alamat     TEXT,
-      telepon    TEXT,
-      dibuat_pada TEXT DEFAULT (datetime('now','localtime'))
+      id          SERIAL PRIMARY KEY,
+      nama        TEXT NOT NULL,
+      alamat      TEXT,
+      telepon     TEXT,
+      dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
-    -- Pengguna (admin / kasir). Kasir terikat ke satu cabang.
     CREATE TABLE IF NOT EXISTS users (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      nama       TEXT NOT NULL,
-      username   TEXT NOT NULL UNIQUE,
-      password   TEXT NOT NULL,               -- hash bcrypt
-      role       TEXT NOT NULL CHECK (role IN ('admin','kasir')),
-      cabang_id  INTEGER REFERENCES cabang(id),
-      aktif      INTEGER NOT NULL DEFAULT 1,
-      dibuat_pada TEXT DEFAULT (datetime('now','localtime'))
+      id          SERIAL PRIMARY KEY,
+      nama        TEXT NOT NULL,
+      username    TEXT NOT NULL UNIQUE,
+      password    TEXT NOT NULL,
+      role        TEXT NOT NULL CHECK (role IN ('admin','kasir')),
+      cabang_id   INTEGER REFERENCES cabang(id),
+      aktif       BOOLEAN NOT NULL DEFAULT TRUE,
+      dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
-    -- Produk (AC & sparepart). SKU unik dipakai untuk QR code.
     CREATE TABLE IF NOT EXISTS produk (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      sku          TEXT NOT NULL UNIQUE,
-      nama         TEXT NOT NULL,
-      kategori     TEXT,
-      satuan       TEXT DEFAULT 'unit',
-      harga_beli   REAL NOT NULL DEFAULT 0,
-      harga_jual   REAL NOT NULL DEFAULT 0,
-      dibuat_pada  TEXT DEFAULT (datetime('now','localtime'))
+      id          SERIAL PRIMARY KEY,
+      sku         TEXT NOT NULL UNIQUE,
+      nama        TEXT NOT NULL,
+      kategori    TEXT,
+      satuan      TEXT DEFAULT 'unit',
+      harga_beli  NUMERIC NOT NULL DEFAULT 0,
+      harga_jual  NUMERIC NOT NULL DEFAULT 0,
+      dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
-    -- Stok per produk per cabang.
     CREATE TABLE IF NOT EXISTS stok (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      id         SERIAL PRIMARY KEY,
       produk_id  INTEGER NOT NULL REFERENCES produk(id),
       cabang_id  INTEGER NOT NULL REFERENCES cabang(id),
       jumlah     INTEGER NOT NULL DEFAULT 0,
       UNIQUE (produk_id, cabang_id)
     );
 
-    -- Pergerakan stok: masuk (restock) / keluar (penjualan/penyesuaian).
+    CREATE TABLE IF NOT EXISTS invoice (
+      id           SERIAL PRIMARY KEY,
+      nomor        TEXT NOT NULL UNIQUE,
+      cabang_id    INTEGER NOT NULL REFERENCES cabang(id),
+      user_id      INTEGER REFERENCES users(id),
+      nama_pembeli TEXT,
+      subtotal     NUMERIC NOT NULL DEFAULT 0,
+      persen_ppn   NUMERIC NOT NULL DEFAULT 11,
+      nilai_ppn    NUMERIC NOT NULL DEFAULT 0,
+      total        NUMERIC NOT NULL DEFAULT 0,
+      dibuat_pada  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS pergerakan_stok (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      id          SERIAL PRIMARY KEY,
       produk_id   INTEGER NOT NULL REFERENCES produk(id),
       cabang_id   INTEGER NOT NULL REFERENCES cabang(id),
       tipe        TEXT NOT NULL CHECK (tipe IN ('masuk','keluar')),
@@ -77,65 +130,29 @@ export function initSchema() {
       keterangan  TEXT,
       user_id     INTEGER REFERENCES users(id),
       invoice_id  INTEGER REFERENCES invoice(id),
-      dibuat_pada TEXT DEFAULT (datetime('now','localtime'))
+      dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
-    -- Invoice penjualan.
-    CREATE TABLE IF NOT EXISTS invoice (
-      id            INTEGER PRIMARY KEY AUTOINCREMENT,
-      nomor         TEXT NOT NULL UNIQUE,
-      cabang_id     INTEGER NOT NULL REFERENCES cabang(id),
-      user_id       INTEGER REFERENCES users(id),
-      nama_pembeli  TEXT,
-      subtotal      REAL NOT NULL DEFAULT 0,
-      persen_ppn    REAL NOT NULL DEFAULT 11,
-      nilai_ppn     REAL NOT NULL DEFAULT 0,
-      total         REAL NOT NULL DEFAULT 0,
-      dibuat_pada   TEXT DEFAULT (datetime('now','localtime'))
-    );
-
-    -- Item pada invoice.
     CREATE TABLE IF NOT EXISTS invoice_item (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      id          SERIAL PRIMARY KEY,
       invoice_id  INTEGER NOT NULL REFERENCES invoice(id) ON DELETE CASCADE,
       produk_id   INTEGER NOT NULL REFERENCES produk(id),
       nama_produk TEXT NOT NULL,
       sku         TEXT NOT NULL,
-      harga       REAL NOT NULL,
+      harga       NUMERIC NOT NULL,
       jumlah      INTEGER NOT NULL,
-      subtotal    REAL NOT NULL
+      subtotal    NUMERIC NOT NULL
     );
 
-    -- Pengaturan toko (nama, alamat, logo) - satu baris.
     CREATE TABLE IF NOT EXISTS pengaturan (
       id         INTEGER PRIMARY KEY CHECK (id = 1),
       nama_toko  TEXT,
       alamat     TEXT,
       telepon    TEXT,
-      logo       TEXT,                -- data URL (base64)
-      persen_ppn REAL NOT NULL DEFAULT 11
+      logo       TEXT,
+      persen_ppn NUMERIC NOT NULL DEFAULT 11
     );
   `);
 }
 
-// ---------------------------------------------------------------------------
-// Helper transaksi.
-// `node:sqlite` (berbeda dengan better-sqlite3) tidak punya db.transaction(fn),
-// jadi kita buat pembungkus sederhana dengan BEGIN/COMMIT/ROLLBACK.
-// Mengembalikan fungsi yang, saat dipanggil, menjalankan fn dalam satu transaksi.
-// ---------------------------------------------------------------------------
-export function buatTransaksi(fn) {
-  return (...args) => {
-    db.exec('BEGIN');
-    try {
-      const hasil = fn(...args);
-      db.exec('COMMIT');
-      return hasil;
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw err;
-    }
-  };
-}
-
-export default db;
+export default pool;

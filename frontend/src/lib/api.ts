@@ -1,6 +1,10 @@
 // Klien API sederhana dengan penyisipan token JWT otomatis.
 const TOKEN_KEY = 'erp_token';
 
+// Base URL backend. Saat development kosong -> pakai proxy Vite (/api -> localhost:4000).
+// Saat produksi, set VITE_API_URL ke URL backend (mis. https://xxx.up.railway.app).
+const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 export function simpanToken(token: string) {
   localStorage.setItem(TOKEN_KEY, token);
 }
@@ -18,7 +22,7 @@ type Opsi = {
 
 export async function api<T = any>(path: string, opsi: Opsi = {}): Promise<T> {
   const token = ambilToken();
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${BASE_URL}/api${path}`, {
     method: opsi.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
