@@ -1,6 +1,6 @@
 // Route invoice: buat invoice (kurangi stok otomatis), lihat daftar & detail.
 import { Router } from 'express';
-import db from '../db.js';
+import db, { buatTransaksi } from '../db.js';
 import { autentikasi } from '../middleware/auth.js';
 
 const router = Router();
@@ -35,7 +35,7 @@ router.post('/', (req, res) => {
   const pengaturan = db.prepare('SELECT persen_ppn FROM pengaturan WHERE id = 1').get();
   const persenPpn = req.body.persen_ppn ?? (pengaturan ? pengaturan.persen_ppn : 11);
 
-  const trx = db.transaction(() => {
+  const trx = buatTransaksi(() => {
     let subtotal = 0;
     const detail = [];
     for (const it of items) {

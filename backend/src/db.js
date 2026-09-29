@@ -1,18 +1,24 @@
 // Koneksi database SQLite + inisialisasi skema.
+// Menggunakan modul bawaan Node.js `node:sqlite` (DatabaseSync) — TANPA kompilasi
+// atau install native module, jadi jalan di semua OS asalkan Node.js >= 22.5.
 // Arsitektur dibuat lewat satu modul ini supaya mudah diganti ke PostgreSQL nanti
 // (cukup ganti driver & sesuaikan query). Lihat README bagian "Migrasi ke PostgreSQL".
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'erp.db');
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// Pastikan folder data ada
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const db = new DatabaseSync(dbPath);
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
 
 // ---------------------------------------------------------------------------
 // Skema tabel
@@ -110,6 +116,26 @@ export function initSchema() {
       persen_ppn REAL NOT NULL DEFAULT 11
     );
   `);
+}
+
+// ---------------------------------------------------------------------------
+// Helper transaksi.
+// `node:sqlite` (berbeda dengan better-sqlite3) tidak punya db.transaction(fn),
+// jadi kita buat pembungkus sederhana dengan BEGIN/COMMIT/ROLLBACK.
+// Mengembalikan fungsi yang, saat dipanggil, menjalankan fn dalam satu transaksi.
+// ---------------------------------------------------------------------------
+export function buatTransaksi(fn) {
+  return (...args) => {
+    db.exec('BEGIN');
+    try {
+      const hasil = fn(...args);
+      db.exec('COMMIT');
+      return hasil;
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  };
 }
 
 export default db;

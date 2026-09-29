@@ -1,6 +1,6 @@
 // Route stok: lihat stok per cabang, catat pergerakan masuk/keluar, riwayat.
 import { Router } from 'express';
-import db from '../db.js';
+import db, { buatTransaksi } from '../db.js';
 import { autentikasi } from '../middleware/auth.js';
 
 const router = Router();
@@ -43,7 +43,7 @@ router.post('/pergerakan', (req, res) => {
     return res.status(400).json({ pesan: 'Jumlah harus bilangan bulat positif.' });
   }
 
-  const trx = db.transaction(() => {
+  const trx = buatTransaksi(() => {
     db.prepare('INSERT OR IGNORE INTO stok (produk_id, cabang_id, jumlah) VALUES (?,?,0)').run(produk_id, cabangId);
     const stok = db.prepare('SELECT jumlah FROM stok WHERE produk_id = ? AND cabang_id = ?').get(produk_id, cabangId);
     let baru = stok.jumlah + (tipe === 'masuk' ? qty : -qty);

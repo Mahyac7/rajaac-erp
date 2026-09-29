@@ -1,13 +1,13 @@
 // Seed data awal: cabang, user admin & kasir, produk contoh, pengaturan toko.
 // Jalankan: npm run seed
 import bcrypt from 'bcryptjs';
-import db, { initSchema } from './db.js';
+import db, { initSchema, buatTransaksi } from './db.js';
 
 initSchema();
 
 const hash = (pw) => bcrypt.hashSync(pw, 10);
 
-const seed = db.transaction(() => {
+const seed = buatTransaksi(() => {
   // Cabang
   const cabangCount = db.prepare('SELECT COUNT(*) c FROM cabang').get().c;
   if (cabangCount === 0) {

@@ -23,7 +23,7 @@ sandbox/
 ├── backend/          # API Express + SQLite
 │   ├── src/
 │   │   ├── server.js       # entry point
-│   │   ├── db.js           # koneksi & skema SQLite
+│   │   ├── db.js           # koneksi & skema SQLite (node:sqlite bawaan)
 │   │   ├── seed.js         # data awal
 │   │   ├── middleware/     # auth JWT & otorisasi role
 │   │   └── routes/         # auth, cabang, users, produk, stok, invoice, pengaturan
@@ -37,7 +37,9 @@ sandbox/
 
 ## 🚀 Cara Menjalankan
 
-Butuh **Node.js 18+** (diuji pada Node 22).
+Butuh **Node.js 22.5 atau lebih baru** (diuji pada Node 22 & 24).
+
+> Database memakai modul bawaan Node.js `node:sqlite`, jadi **tidak perlu compiler C++ atau install tambahan** — cukup Node.js saja.
 
 ### 1. Backend
 
@@ -89,7 +91,7 @@ Backend membaca environment variable berikut:
 
 Saat ini pakai SQLite agar mudah dijalankan tanpa server database. Untuk produksi online yang diakses beberapa cabang sekaligus, PostgreSQL lebih cocok. Arsitektur sudah disiapkan agar migrasi relatif mudah:
 
-1. **Semua akses DB terpusat di `backend/src/db.js`** dan query ada di folder `routes/`. Ganti driver `better-sqlite3` dengan `pg` (node-postgres).
+1. **Semua akses DB terpusat di `backend/src/db.js`** dan query ada di folder `routes/`. Ganti driver `node:sqlite` dengan `pg` (node-postgres), dan ganti helper `buatTransaksi()` dengan transaksi `pg`.
 2. **Sesuaikan sintaks skema**:
    - `INTEGER PRIMARY KEY AUTOINCREMENT` → `SERIAL PRIMARY KEY` (atau `GENERATED ALWAYS AS IDENTITY`).
    - `datetime('now','localtime')` → `NOW()`.
