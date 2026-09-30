@@ -54,7 +54,10 @@ export default function InvoiceDetail() {
         <div className="grid grid-cols-2 gap-4 py-4 text-sm">
           <div>
             <div className="text-slate-400">Pembeli</div>
-            <div className="font-medium">{inv.nama_pembeli || 'Umum'}</div>
+            <div className="font-medium">{inv.pelanggan_nama || inv.nama_pembeli || 'Umum'}</div>
+            {inv.pelanggan_telepon && <div className="text-xs text-slate-400">{inv.pelanggan_telepon}</div>}
+            <div className="mt-1 text-slate-400">Pembayaran</div>
+            <div className="font-medium uppercase">{inv.metode_bayar || 'tunai'}</div>
           </div>
           <div className="text-right">
             <div className="text-slate-400">Tanggal</div>

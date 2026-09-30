@@ -13,6 +13,9 @@ import pengaturanRoutes from './routes/pengaturan.js';
 import laporanRoutes from './routes/laporan.js';
 import returRoutes from './routes/retur.js';
 import transferRoutes from './routes/transfer.js';
+import pelangganRoutes from './routes/pelanggan.js';
+import garansiRoutes from './routes/garansi.js';
+import jadwalRoutes from './routes/jadwal.js';
 
 const app = express();
 
@@ -34,6 +37,9 @@ app.use('/api/pengaturan', pengaturanRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/retur', returRoutes);
 app.use('/api/transfer', transferRoutes);
+app.use('/api/pelanggan', pelangganRoutes);
+app.use('/api/garansi', garansiRoutes);
+app.use('/api/jadwal', jadwalRoutes);
 
 // Handler error umum
 app.use((err, req, res, next) => {

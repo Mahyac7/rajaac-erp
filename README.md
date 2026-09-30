@@ -20,6 +20,11 @@ Sistem ERP sederhana untuk toko AC dengan dukungan **multi-cabang** dan **multi-
 - **Retur Barang** — catat barang yang dikembalikan pelanggan; stok otomatis kembali dan penjualan bersih pada laporan ikut menyesuaikan.
 - **Transfer Stok Antar Cabang** — pindahkan stok dari satu cabang ke cabang lain dalam satu transaksi (**khusus admin**).
 - **Struk Thermal 80mm** — cetak struk ringkas untuk printer kasir, selain invoice A4.
+- **Pelanggan + Garansi** — data pelanggan & riwayat pembelian; garansi unit terjual dihitung otomatis (masa garansi per produk dalam bulan) dengan status **aktif / hampir habis / kadaluarsa**.
+- **Jadwal Servis & Pemasangan** — kelola jadwal teknisi (pasang/servis) dengan status dijadwalkan/selesai/batal.
+- **Metode Pembayaran** — pilih tunai / transfer / QRIS saat membuat invoice; tampil di invoice & struk.
+- **Notifikasi Stok Menipis** — badge di menu Produk menampilkan jumlah produk yang stoknya di bawah batas (batas dapat diatur di Pengaturan Toko).
+- **Mode PWA** — aplikasi dapat "di-install" di HP/desktop kasir seperti aplikasi biasa (manifest + service worker).
 
 ## 🧱 Teknologi
 

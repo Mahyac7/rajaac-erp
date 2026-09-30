@@ -43,6 +43,7 @@ export interface Pengaturan {
   telepon?: string;
   logo?: string | null;
   persen_ppn?: number;
+  batas_stok?: number;
 }
 
 export interface InvoiceItem {
@@ -68,6 +69,9 @@ export interface Invoice {
   cabang_nama?: string;
   cabang_alamat?: string;
   kasir_nama?: string;
+  metode_bayar?: string;
+  pelanggan_nama?: string;
+  pelanggan_telepon?: string;
   items?: InvoiceItem[];
   pengaturan?: Pengaturan;
 }
@@ -134,4 +138,48 @@ export interface Transfer {
   keterangan?: string;
   user_nama?: string;
   dibuat_pada: string;
+}
+
+export interface Pelanggan {
+  id: number;
+  nama: string;
+  telepon?: string;
+  alamat?: string;
+  catatan?: string;
+  invoice?: { id: number; nomor: string; total: number; dibuat_pada: string }[];
+  garansi?: { id: number; nama_produk: string; sku: string; mulai: string; habis: string }[];
+}
+
+export type StatusGaransi = 'aktif' | 'hampir_habis' | 'kadaluarsa';
+
+export interface Garansi {
+  id: number;
+  nama_produk: string;
+  sku: string;
+  nama_pembeli?: string;
+  pelanggan_nama?: string;
+  invoice_nomor?: string;
+  cabang_nama?: string;
+  mulai: string;
+  habis: string;
+  sisa_hari: number;
+  status: StatusGaransi;
+}
+
+export type StatusJadwal = 'dijadwalkan' | 'selesai' | 'batal';
+
+export interface Jadwal {
+  id: number;
+  tanggal: string;
+  jenis: 'pasang' | 'servis';
+  pelanggan_id?: number;
+  nama_pelanggan?: string;
+  telepon?: string;
+  alamat?: string;
+  teknisi?: string;
+  catatan?: string;
+  status: StatusJadwal;
+  cabang_id?: number;
+  cabang_nama?: string;
+  pelanggan_nama_ref?: string;
 }

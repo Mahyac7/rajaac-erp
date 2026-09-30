@@ -52,7 +52,8 @@ export function cetakStrukThermal(inv: Invoice) {
   <div class="ln kecil"><span>No</span><span>${inv.nomor}</span></div>
   <div class="ln kecil"><span>Tanggal</span><span>${tglStr}</span></div>
   <div class="ln kecil"><span>Kasir</span><span>${inv.kasir_nama || '-'}</span></div>
-  <div class="ln kecil"><span>Pembeli</span><span>${inv.nama_pembeli || 'Umum'}</span></div>
+  <div class="ln kecil"><span>Pembeli</span><span>${inv.pelanggan_nama || inv.nama_pembeli || 'Umum'}</span></div>
+  <div class="ln kecil"><span>Bayar</span><span>${(inv.metode_bayar || 'tunai').toUpperCase()}</span></div>
   <hr>
   ${barisItem}
   <hr>

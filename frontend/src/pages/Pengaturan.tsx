@@ -74,6 +74,11 @@ export default function PengaturanPage() {
             <input type="number" className="input" value={form.persen_ppn ?? 11} onChange={(e) => setForm({ ...form, persen_ppn: Number(e.target.value) })} />
           </div>
         </div>
+        <div>
+          <label className="label">Batas Stok Menipis</label>
+          <input type="number" className="input" value={form.batas_stok ?? 5} onChange={(e) => setForm({ ...form, batas_stok: Number(e.target.value) })} />
+          <p className="mt-1 text-xs text-slate-400">Produk dengan stok ≤ angka ini akan muncul di notifikasi stok menipis.</p>
+        </div>
         {pesan && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{pesan}</div>}
         {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
         <div className="flex justify-end">

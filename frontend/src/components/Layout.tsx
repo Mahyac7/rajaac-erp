@@ -1,15 +1,20 @@
 // Layout utama dengan sidebar navigasi (bahasa Indonesia).
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 
 const menu = [
   { ke: '/', label: 'Dasbor', icon: '📊', role: ['admin', 'kasir'] },
-  { ke: '/produk', label: 'Produk & QR', icon: '📦', role: ['admin', 'kasir'] },
+  { ke: '/produk', label: 'Produk & QR', icon: '📦', role: ['admin', 'kasir'], badge: 'stok' },
   { ke: '/stok', label: 'Keluar/Masuk Barang', icon: '🔄', role: ['admin', 'kasir'] },
   { ke: '/scan', label: 'Scan QR', icon: '📷', role: ['admin', 'kasir'] },
   { ke: '/invoice', label: 'Invoice', icon: '🧾', role: ['admin', 'kasir'] },
   { ke: '/retur', label: 'Retur Barang', icon: '↩️', role: ['admin', 'kasir'] },
   { ke: '/transfer', label: 'Transfer Stok', icon: '🔀', role: ['admin'] },
+  { ke: '/pelanggan', label: 'Pelanggan', icon: '👥', role: ['admin', 'kasir'] },
+  { ke: '/garansi', label: 'Garansi', icon: '🛡️', role: ['admin', 'kasir'] },
+  { ke: '/jadwal', label: 'Jadwal Servis', icon: '🔧', role: ['admin', 'kasir'] },
   { ke: '/laporan', label: 'Laporan', icon: '📈', role: ['admin', 'kasir'] },
   { ke: '/pengaturan', label: 'Pengaturan Toko', icon: '⚙️', role: ['admin'] },
   { ke: '/pengguna', label: 'Pengguna', icon: '👤', role: ['admin'] },
@@ -17,6 +22,15 @@ const menu = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const [stokMenipis, setStokMenipis] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    api<{ produk: unknown[] }>('/produk/stok-menipis')
+      .then((d) => setStokMenipis(d.produk.length))
+      .catch(() => {});
+  }, [user]);
+
   if (!user) return null;
   const menuTampil = menu.filter((m) => m.role.includes(user.role));
 
@@ -30,7 +44,7 @@ export default function Layout() {
             <div className="text-xs text-slate-400">Sistem Manajemen</div>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {menuTampil.map((m) => (
             <NavLink
               key={m.ke}
@@ -43,7 +57,10 @@ export default function Layout() {
               }
             >
               <span>{m.icon}</span>
-              {m.label}
+              <span className="flex-1">{m.label}</span>
+              {m.badge === 'stok' && stokMenipis > 0 && (
+                <span className="badge bg-amber-100 text-amber-700" title="Produk stok menipis">{stokMenipis}</span>
+              )}
             </NavLink>
           ))}
         </nav>

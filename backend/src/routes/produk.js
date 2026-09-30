@@ -31,6 +31,40 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Produk dengan stok menipis (<= batas_stok pengaturan). Untuk notifikasi.
+// Opsional filter ?cabang_id= (kasir otomatis cabangnya).
+router.get('/stok-menipis', async (req, res, next) => {
+  try {
+    const set = await satu('SELECT batas_stok FROM pengaturan WHERE id = 1');
+    const batas = set ? Number(set.batas_stok) : 5;
+    const cabangId = req.user.role === 'kasir'
+      ? req.user.cabang_id
+      : (req.query.cabang_id ? Number(req.query.cabang_id) : null);
+
+    const params = [batas];
+    let stokExpr, join, groupCabang;
+    if (cabangId) {
+      params.push(cabangId);
+      stokExpr = 'COALESCE(s.jumlah,0)';
+      join = 'LEFT JOIN stok s ON s.produk_id = p.id AND s.cabang_id = $2';
+      groupCabang = '';
+    } else {
+      stokExpr = 'COALESCE((SELECT SUM(jumlah) FROM stok WHERE produk_id = p.id),0)';
+      join = '';
+      groupCabang = '';
+    }
+    const rows = await semua(
+      `SELECT p.id, p.sku, p.nama, p.kategori, p.satuan, ${stokExpr} AS stok
+       FROM produk p ${join}
+       WHERE LOWER(COALESCE(p.kategori,'')) <> 'jasa'
+         AND ${stokExpr} <= $1
+       ORDER BY stok ASC, p.nama`,
+      params
+    );
+    res.json({ batas_stok: batas, produk: rows });
+  } catch (e) { next(e); }
+});
+
 // Cari 1 produk berdasarkan SKU (untuk hasil scan QR)
 router.get('/sku/:sku', async (req, res, next) => {
   try {
@@ -48,13 +82,13 @@ router.get('/sku/:sku', async (req, res, next) => {
 
 router.post('/', izinkan('admin'), async (req, res, next) => {
   try {
-    const { sku, nama, kategori, satuan, harga_beli, harga_jual } = req.body || {};
+    const { sku, nama, kategori, satuan, harga_beli, harga_jual, garansi_bulan } = req.body || {};
     if (!sku || !nama) return res.status(400).json({ pesan: 'SKU dan nama wajib diisi.' });
     const ada = await satu('SELECT id FROM produk WHERE sku = $1', [sku]);
     if (ada) return res.status(409).json({ pesan: 'SKU sudah dipakai.' });
     const produk = await satu(
-      'INSERT INTO produk (sku, nama, kategori, satuan, harga_beli, harga_jual) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-      [sku, nama, kategori || null, satuan || 'unit', harga_beli || 0, harga_jual || 0]
+      'INSERT INTO produk (sku, nama, kategori, satuan, harga_beli, harga_jual, garansi_bulan) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+      [sku, nama, kategori || null, satuan || 'unit', harga_beli || 0, harga_jual || 0, garansi_bulan || 0]
     );
     // Inisialisasi stok 0 di semua cabang
     await query(
@@ -69,14 +103,15 @@ router.post('/', izinkan('admin'), async (req, res, next) => {
 
 router.put('/:id', izinkan('admin'), async (req, res, next) => {
   try {
-    const { sku, nama, kategori, satuan, harga_beli, harga_jual } = req.body || {};
+    const { sku, nama, kategori, satuan, harga_beli, harga_jual, garansi_bulan } = req.body || {};
     const p = await satu('SELECT * FROM produk WHERE id = $1', [req.params.id]);
     if (!p) return res.status(404).json({ pesan: 'Produk tidak ditemukan.' });
     const row = await satu(
-      'UPDATE produk SET sku=$1, nama=$2, kategori=$3, satuan=$4, harga_beli=$5, harga_jual=$6 WHERE id=$7 RETURNING *',
+      'UPDATE produk SET sku=$1, nama=$2, kategori=$3, satuan=$4, harga_beli=$5, harga_jual=$6, garansi_bulan=$7 WHERE id=$8 RETURNING *',
       [
         sku ?? p.sku, nama ?? p.nama, kategori ?? p.kategori, satuan ?? p.satuan,
-        harga_beli ?? p.harga_beli, harga_jual ?? p.harga_jual, req.params.id,
+        harga_beli ?? p.harga_beli, harga_jual ?? p.harga_jual,
+        garansi_bulan ?? p.garansi_bulan, req.params.id,
       ]
     );
     res.json(row);
