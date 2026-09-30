@@ -28,7 +28,8 @@ async function nomorInvoiceBaru(client, cabangId) {
 // Buat invoice. Body: { cabang_id?, nama_pembeli?, persen_ppn?, items:[{produk_id, jumlah}] }
 router.post('/', async (req, res, next) => {
   try {
-    const { nama_pembeli, items } = req.body || {};
+    const { nama_pembeli, items, pelanggan_id } = req.body || {};
+    const metodeBayar = ['tunai', 'transfer', 'qris'].includes(req.body.metode_bayar) ? req.body.metode_bayar : 'tunai';
     const cabangId = resolveCabang(req, req.body.cabang_id);
     if (!cabangId) return res.status(400).json({ pesan: 'Cabang wajib dipilih.' });
     if (!Array.isArray(items) || items.length === 0) {
@@ -77,9 +78,9 @@ router.post('/', async (req, res, next) => {
       const nomor = await nomorInvoiceBaru(client, cabangId);
 
       const { rows: ir } = await client.query(
-        `INSERT INTO invoice (nomor, cabang_id, user_id, nama_pembeli, subtotal, persen_ppn, nilai_ppn, total)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-        [nomor, cabangId, req.user.id, nama_pembeli || null, subtotal, persenPpn, nilaiPpn, total]
+        `INSERT INTO invoice (nomor, cabang_id, user_id, nama_pembeli, subtotal, persen_ppn, nilai_ppn, total, metode_bayar, pelanggan_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+        [nomor, cabangId, req.user.id, nama_pembeli || null, subtotal, persenPpn, nilaiPpn, total, metodeBayar, pelanggan_id || null]
       );
       const id = ir[0].id;
 
@@ -93,6 +94,17 @@ router.post('/', async (req, res, next) => {
             'INSERT INTO pergerakan_stok (produk_id, cabang_id, tipe, jumlah, keterangan, user_id, invoice_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
             [d.produk.id, cabangId, 'keluar', d.qty, `Penjualan ${nomor}`, req.user.id, id]
           );
+        }
+        // Buat garansi otomatis untuk produk yang punya masa garansi — 1 record per unit terjual.
+        const bulan = Number(d.produk.garansi_bulan || 0);
+        if (bulan > 0) {
+          for (let u = 0; u < d.qty; u++) {
+            await client.query(
+              `INSERT INTO garansi (invoice_id, produk_id, nama_produk, sku, pelanggan_id, nama_pembeli, cabang_id, mulai, habis)
+               VALUES ($1,$2,$3,$4,$5,$6,$7, CURRENT_DATE, CURRENT_DATE + ($8 || ' months')::interval)`,
+              [id, d.produk.id, d.produk.nama, d.produk.sku, pelanggan_id || null, nama_pembeli || null, cabangId, String(bulan)]
+            );
+          }
         }
       }
       return id;
@@ -110,10 +122,12 @@ router.post('/', async (req, res, next) => {
 
 async function getInvoiceLengkap(id) {
   const inv = await satu(
-    `SELECT i.*, c.nama AS cabang_nama, c.alamat AS cabang_alamat, u.nama AS kasir_nama
+    `SELECT i.*, c.nama AS cabang_nama, c.alamat AS cabang_alamat, u.nama AS kasir_nama,
+            pl.nama AS pelanggan_nama, pl.telepon AS pelanggan_telepon
      FROM invoice i
      JOIN cabang c ON c.id = i.cabang_id
      LEFT JOIN users u ON u.id = i.user_id
+     LEFT JOIN pelanggan pl ON pl.id = i.pelanggan_id
      WHERE i.id = $1`,
     [id]
   );

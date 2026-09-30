@@ -8,3 +8,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>
 );
+
+// Daftarkan service worker untuk PWA (bisa di-"install" di HP).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* abaikan bila gagal (mis. saat dev) */
+    });
+  });
+}

@@ -188,6 +188,56 @@ export async function initSchema() {
       user_id        INTEGER REFERENCES users(id),
       dibuat_pada    TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    -- Pelanggan.
+    CREATE TABLE IF NOT EXISTS pelanggan (
+      id          SERIAL PRIMARY KEY,
+      nama        TEXT NOT NULL,
+      telepon     TEXT,
+      alamat      TEXT,
+      catatan     TEXT,
+      dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Garansi unit terjual (dibuat otomatis saat invoice).
+    CREATE TABLE IF NOT EXISTS garansi (
+      id            SERIAL PRIMARY KEY,
+      invoice_id    INTEGER REFERENCES invoice(id) ON DELETE CASCADE,
+      produk_id     INTEGER NOT NULL REFERENCES produk(id),
+      nama_produk   TEXT NOT NULL,
+      sku           TEXT NOT NULL,
+      pelanggan_id  INTEGER REFERENCES pelanggan(id),
+      nama_pembeli  TEXT,
+      cabang_id     INTEGER REFERENCES cabang(id),
+      mulai         DATE NOT NULL,
+      habis         DATE NOT NULL,
+      dibuat_pada   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Jadwal servis / pemasangan.
+    CREATE TABLE IF NOT EXISTS jadwal_servis (
+      id            SERIAL PRIMARY KEY,
+      tanggal       DATE NOT NULL,
+      jenis         TEXT NOT NULL CHECK (jenis IN ('pasang','servis')),
+      pelanggan_id  INTEGER REFERENCES pelanggan(id),
+      nama_pelanggan TEXT,
+      telepon       TEXT,
+      alamat        TEXT,
+      teknisi       TEXT,
+      catatan       TEXT,
+      status        TEXT NOT NULL DEFAULT 'dijadwalkan' CHECK (status IN ('dijadwalkan','selesai','batal')),
+      cabang_id     INTEGER REFERENCES cabang(id),
+      user_id       INTEGER REFERENCES users(id),
+      dibuat_pada   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  // Tambah kolom pada tabel yang sudah ada (aman untuk DB produksi existing).
+  await pool.query(`
+    ALTER TABLE produk     ADD COLUMN IF NOT EXISTS garansi_bulan INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE invoice    ADD COLUMN IF NOT EXISTS metode_bayar TEXT NOT NULL DEFAULT 'tunai';
+    ALTER TABLE invoice    ADD COLUMN IF NOT EXISTS pelanggan_id INTEGER REFERENCES pelanggan(id);
+    ALTER TABLE pengaturan ADD COLUMN IF NOT EXISTS batas_stok INTEGER NOT NULL DEFAULT 5;
   `);
 }
 

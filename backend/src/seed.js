@@ -44,19 +44,20 @@ async function seed() {
     // Produk contoh + stok awal
     const { rows: pRows } = await client.query('SELECT COUNT(*)::int AS c FROM produk');
     if (pRows[0].c === 0) {
+      // Kolom terakhir = garansi_bulan (AC 12 bln, sparepart/jasa 0).
       const produkList = [
-        ['AC-SPT-05', 'AC Split 1/2 PK Standar', 'AC Split', 'unit', 2500000, 3200000],
-        ['AC-SPT-10', 'AC Split 1 PK Inverter', 'AC Split', 'unit', 3800000, 4900000],
-        ['AC-SPT-15', 'AC Split 1.5 PK Inverter', 'AC Split', 'unit', 5200000, 6500000],
-        ['AC-CST-20', 'AC Cassette 2 PK', 'AC Cassette', 'unit', 8500000, 10500000],
-        ['SP-FRE-01', 'Freon R32 (per kg)', 'Sparepart', 'kg', 90000, 150000],
-        ['SP-PIP-01', 'Pipa Tembaga 1/4 (per meter)', 'Sparepart', 'meter', 35000, 55000],
-        ['SP-BRK-01', 'Bracket Outdoor', 'Sparepart', 'set', 45000, 80000],
-        ['JS-PSG-01', 'Jasa Pasang AC Split', 'Jasa', 'unit', 0, 350000],
+        ['AC-SPT-05', 'AC Split 1/2 PK Standar', 'AC Split', 'unit', 2500000, 3200000, 12],
+        ['AC-SPT-10', 'AC Split 1 PK Inverter', 'AC Split', 'unit', 3800000, 4900000, 12],
+        ['AC-SPT-15', 'AC Split 1.5 PK Inverter', 'AC Split', 'unit', 5200000, 6500000, 12],
+        ['AC-CST-20', 'AC Cassette 2 PK', 'AC Cassette', 'unit', 8500000, 10500000, 24],
+        ['SP-FRE-01', 'Freon R32 (per kg)', 'Sparepart', 'kg', 90000, 150000, 0],
+        ['SP-PIP-01', 'Pipa Tembaga 1/4 (per meter)', 'Sparepart', 'meter', 35000, 55000, 0],
+        ['SP-BRK-01', 'Bracket Outdoor', 'Sparepart', 'set', 45000, 80000, 0],
+        ['JS-PSG-01', 'Jasa Pasang AC Split', 'Jasa', 'unit', 0, 350000, 0],
       ];
       for (const p of produkList) {
         await client.query(
-          'INSERT INTO produk (sku, nama, kategori, satuan, harga_beli, harga_jual) VALUES ($1,$2,$3,$4,$5,$6)',
+          'INSERT INTO produk (sku, nama, kategori, satuan, harga_beli, harga_jual, garansi_bulan) VALUES ($1,$2,$3,$4,$5,$6,$7)',
           p
         );
       }

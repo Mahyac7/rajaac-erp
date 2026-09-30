@@ -15,6 +15,9 @@ import Pengguna from './pages/Pengguna';
 import Laporan from './pages/Laporan';
 import Retur from './pages/Retur';
 import Transfer from './pages/Transfer';
+import Pelanggan from './pages/Pelanggan';
+import Garansi from './pages/Garansi';
+import Jadwal from './pages/Jadwal';
 import type { Role } from './lib/types';
 
 function Terlindungi({ children, role }: { children: ReactElement; role?: Role[] }) {
@@ -46,6 +49,9 @@ export default function App() {
             <Route path="/invoice/baru" element={<InvoiceBaru />} />
             <Route path="/invoice/:id" element={<InvoiceDetail />} />
             <Route path="/retur" element={<Retur />} />
+            <Route path="/pelanggan" element={<Pelanggan />} />
+            <Route path="/garansi" element={<Garansi />} />
+            <Route path="/jadwal" element={<Jadwal />} />
             <Route path="/laporan" element={<Laporan />} />
             <Route
               path="/transfer"

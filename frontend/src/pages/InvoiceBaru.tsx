@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { rupiah } from '../lib/format';
-import type { Cabang, Pengaturan, Produk } from '../lib/types';
+import type { Cabang, Pelanggan, Pengaturan, Produk } from '../lib/types';
+
+type MetodeBayar = 'tunai' | 'transfer' | 'qris';
 
 interface Baris {
   produk: Produk;
@@ -26,12 +28,16 @@ export default function InvoiceBaru() {
   const [cari, setCari] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pelanggan, setPelanggan] = useState<Pelanggan[]>([]);
+  const [pelangganId, setPelangganId] = useState<number | ''>('');
+  const [metodeBayar, setMetodeBayar] = useState<MetodeBayar>('tunai');
 
   useEffect(() => {
     if (isAdmin) api<Cabang[]>('/cabang').then((c) => {
       setCabang(c);
       if (!cabangId && c.length) setCabangId(c[0].id);
     });
+    api<Pelanggan[]>('/pelanggan').then(setPelanggan);
     api<Pengaturan>('/pengaturan').then((p) => setPersenPpn(p.persen_ppn ?? 11));
     api<Produk[]>('/produk').then((p) => {
       setProduk(p);
@@ -74,6 +80,8 @@ export default function InvoiceBaru() {
         body: {
           cabang_id: cabangId,
           nama_pembeli: namaPembeli,
+          pelanggan_id: pelangganId || null,
+          metode_bayar: metodeBayar,
           persen_ppn: persenPpn,
           items: baris.map((x) => ({ produk_id: x.produk.id, jumlah: x.jumlah })),
         },
@@ -114,8 +122,28 @@ export default function InvoiceBaru() {
         <div className="card lg:col-span-2">
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <div>
+              <label className="label">Pelanggan (opsional)</label>
+              <select className="input" value={pelangganId} onChange={(e) => {
+                const id = e.target.value ? Number(e.target.value) : '';
+                setPelangganId(id);
+                const pl = pelanggan.find((x) => x.id === id);
+                if (pl) setNamaPembeli(pl.nama);
+              }}>
+                <option value="">— Umum / tanpa pelanggan —</option>
+                {pelanggan.map((pl) => <option key={pl.id} value={pl.id}>{pl.nama}{pl.telepon ? ` (${pl.telepon})` : ''}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="label">Nama Pembeli</label>
               <input className="input" value={namaPembeli} onChange={(e) => setNamaPembeli(e.target.value)} placeholder="Umum / nama pelanggan" />
+            </div>
+            <div>
+              <label className="label">Metode Pembayaran</label>
+              <select className="input" value={metodeBayar} onChange={(e) => setMetodeBayar(e.target.value as MetodeBayar)}>
+                <option value="tunai">Tunai</option>
+                <option value="transfer">Transfer</option>
+                <option value="qris">QRIS</option>
+              </select>
             </div>
             {isAdmin && (
               <div>
