@@ -3,8 +3,18 @@ import QRCode from 'qrcode';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { rupiah } from '../lib/format';
+import { eksporExcel, eksporPDF } from '../lib/ekspor';
 import type { Produk } from '../lib/types';
 import Modal from '../components/Modal';
+
+const kolomProduk = [
+  { key: 'sku', label: 'SKU' },
+  { key: 'nama', label: 'Nama' },
+  { key: 'kategori', label: 'Kategori' },
+  { key: 'harga_beli', label: 'Harga Beli' },
+  { key: 'harga_jual', label: 'Harga Jual' },
+  { key: 'stok', label: 'Total Stok' },
+];
 
 // Isi QR: SKU, nama, harga (format JSON ringkas agar mudah dibaca ulang saat scan)
 export function qrPayload(p: Produk) {
@@ -54,9 +64,13 @@ export default function ProdukPage() {
           <h1 className="text-2xl font-bold text-slate-800">Produk & QR Code</h1>
           <p className="text-sm text-slate-500">Kelola daftar barang dan cetak QR code</p>
         </div>
-        {isAdmin && (
-          <button className="btn-primary" onClick={() => setForm({ ...kosong })}>+ Tambah Produk</button>
-        )}
+        <div className="flex gap-2">
+          <button className="btn-secondary" onClick={() => eksporExcel('produk', 'Produk', kolomProduk, produk)}>⬇ Excel</button>
+          <button className="btn-secondary" onClick={() => eksporPDF('produk', 'Daftar Produk', kolomProduk, produk)}>⬇ PDF</button>
+          {isAdmin && (
+            <button className="btn-primary" onClick={() => setForm({ ...kosong })}>+ Tambah Produk</button>
+          )}
+        </div>
       </div>
 
       <div className="card mb-4">

@@ -152,6 +152,42 @@ export async function initSchema() {
       logo       TEXT,
       persen_ppn NUMERIC NOT NULL DEFAULT 11
     );
+
+    -- Retur penjualan: barang dikembalikan pelanggan -> stok kembali.
+    CREATE TABLE IF NOT EXISTS retur (
+      id           SERIAL PRIMARY KEY,
+      nomor        TEXT NOT NULL UNIQUE,
+      invoice_id   INTEGER REFERENCES invoice(id),
+      cabang_id    INTEGER NOT NULL REFERENCES cabang(id),
+      user_id      INTEGER REFERENCES users(id),
+      alasan       TEXT,
+      total        NUMERIC NOT NULL DEFAULT 0,
+      dibuat_pada  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS retur_item (
+      id          SERIAL PRIMARY KEY,
+      retur_id    INTEGER NOT NULL REFERENCES retur(id) ON DELETE CASCADE,
+      produk_id   INTEGER NOT NULL REFERENCES produk(id),
+      nama_produk TEXT NOT NULL,
+      sku         TEXT NOT NULL,
+      harga       NUMERIC NOT NULL,
+      jumlah      INTEGER NOT NULL,
+      subtotal    NUMERIC NOT NULL
+    );
+
+    -- Transfer stok antar cabang (hanya admin).
+    CREATE TABLE IF NOT EXISTS transfer_stok (
+      id             SERIAL PRIMARY KEY,
+      nomor          TEXT NOT NULL UNIQUE,
+      produk_id      INTEGER NOT NULL REFERENCES produk(id),
+      cabang_asal    INTEGER NOT NULL REFERENCES cabang(id),
+      cabang_tujuan  INTEGER NOT NULL REFERENCES cabang(id),
+      jumlah         INTEGER NOT NULL,
+      keterangan     TEXT,
+      user_id        INTEGER REFERENCES users(id),
+      dibuat_pada    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 
