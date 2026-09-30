@@ -8,6 +8,9 @@ const menu = [
   { ke: '/stok', label: 'Keluar/Masuk Barang', icon: '🔄', role: ['admin', 'kasir'] },
   { ke: '/scan', label: 'Scan QR', icon: '📷', role: ['admin', 'kasir'] },
   { ke: '/invoice', label: 'Invoice', icon: '🧾', role: ['admin', 'kasir'] },
+  { ke: '/retur', label: 'Retur Barang', icon: '↩️', role: ['admin', 'kasir'] },
+  { ke: '/transfer', label: 'Transfer Stok', icon: '🔀', role: ['admin'] },
+  { ke: '/laporan', label: 'Laporan', icon: '📈', role: ['admin', 'kasir'] },
   { ke: '/pengaturan', label: 'Pengaturan Toko', icon: '⚙️', role: ['admin'] },
   { ke: '/pengguna', label: 'Pengguna', icon: '👤', role: ['admin'] },
 ];

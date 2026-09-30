@@ -15,6 +15,11 @@ Sistem ERP sederhana untuk toko AC dengan dukungan **multi-cabang** dan **multi-
 - **Keluar/Masuk Barang** — catat barang masuk (restock) & keluar (penyesuaian), lengkap dengan riwayat pergerakan.
 - **Invoice** — buat invoice penjualan, stok otomatis berkurang, hitung **PPN** otomatis, cetak/simpan PDF dengan **logo + nama + alamat toko**.
 - **Pengaturan Toko** — nama, alamat, telepon, logo, dan persentase PPN default.
+- **Laporan & Grafik** — ringkasan penjualan, penjualan bersih, retur, estimasi laba; grafik penjualan harian, produk terlaris, dan perbandingan antar cabang. Filter per periode & cabang.
+- **Ekspor Excel & PDF** — ekspor daftar produk, riwayat stok, dan laporan penjualan.
+- **Retur Barang** — catat barang yang dikembalikan pelanggan; stok otomatis kembali dan penjualan bersih pada laporan ikut menyesuaikan.
+- **Transfer Stok Antar Cabang** — pindahkan stok dari satu cabang ke cabang lain dalam satu transaksi (**khusus admin**).
+- **Struk Thermal 80mm** — cetak struk ringkas untuk printer kasir, selain invoice A4.
 
 ## 🧱 Teknologi
 

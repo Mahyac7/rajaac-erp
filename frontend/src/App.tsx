@@ -12,6 +12,9 @@ import InvoiceBaru from './pages/InvoiceBaru';
 import InvoiceDetail from './pages/InvoiceDetail';
 import Pengaturan from './pages/Pengaturan';
 import Pengguna from './pages/Pengguna';
+import Laporan from './pages/Laporan';
+import Retur from './pages/Retur';
+import Transfer from './pages/Transfer';
 import type { Role } from './lib/types';
 
 function Terlindungi({ children, role }: { children: ReactElement; role?: Role[] }) {
@@ -42,6 +45,16 @@ export default function App() {
             <Route path="/invoice" element={<InvoiceList />} />
             <Route path="/invoice/baru" element={<InvoiceBaru />} />
             <Route path="/invoice/:id" element={<InvoiceDetail />} />
+            <Route path="/retur" element={<Retur />} />
+            <Route path="/laporan" element={<Laporan />} />
+            <Route
+              path="/transfer"
+              element={
+                <Terlindungi role={['admin']}>
+                  <Transfer />
+                </Terlindungi>
+              }
+            />
             <Route
               path="/pengaturan"
               element={

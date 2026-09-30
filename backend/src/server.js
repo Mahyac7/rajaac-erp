@@ -10,6 +10,9 @@ import produkRoutes from './routes/produk.js';
 import stokRoutes from './routes/stok.js';
 import invoiceRoutes from './routes/invoice.js';
 import pengaturanRoutes from './routes/pengaturan.js';
+import laporanRoutes from './routes/laporan.js';
+import returRoutes from './routes/retur.js';
+import transferRoutes from './routes/transfer.js';
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use('/api/produk', produkRoutes);
 app.use('/api/stok', stokRoutes);
 app.use('/api/invoice', invoiceRoutes);
 app.use('/api/pengaturan', pengaturanRoutes);
+app.use('/api/laporan', laporanRoutes);
+app.use('/api/retur', returRoutes);
+app.use('/api/transfer', transferRoutes);
 
 // Handler error umum
 app.use((err, req, res, next) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { tanggalID } from '../lib/format';
+import { eksporExcel, eksporPDF } from '../lib/ekspor';
 import type { Cabang, StokRow } from '../lib/types';
 import Modal from '../components/Modal';
 
@@ -99,7 +100,19 @@ export default function StokPage() {
         </div>
 
         <div className="card p-0">
-          <h2 className="border-b border-slate-200 px-4 py-3 font-semibold text-slate-800">Riwayat Pergerakan</h2>
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <h2 className="font-semibold text-slate-800">Riwayat Pergerakan</h2>
+            <div className="flex gap-1">
+              <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => eksporExcel('riwayat-stok', 'Riwayat', [
+                { key: 'dibuat_pada', label: 'Waktu' }, { key: 'tipe', label: 'Tipe' }, { key: 'produk_nama', label: 'Produk' },
+                { key: 'sku', label: 'SKU' }, { key: 'jumlah', label: 'Jumlah' }, { key: 'keterangan', label: 'Keterangan' }, { key: 'user_nama', label: 'Oleh' },
+              ], riwayat)}>⬇ Excel</button>
+              <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => eksporPDF('riwayat-stok', 'Riwayat Pergerakan Stok', [
+                { key: 'dibuat_pada', label: 'Waktu' }, { key: 'tipe', label: 'Tipe' }, { key: 'produk_nama', label: 'Produk' },
+                { key: 'jumlah', label: 'Jumlah' }, { key: 'user_nama', label: 'Oleh' },
+              ], riwayat)}>⬇ PDF</button>
+            </div>
+          </div>
           <div className="max-h-[500px] overflow-auto">
             <table className="w-full">
               <tbody className="divide-y divide-slate-100">

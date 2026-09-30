@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { rupiah, tanggalID } from '../lib/format';
+import { cetakStrukThermal } from '../lib/struk';
 import type { Invoice } from '../lib/types';
 
 export default function InvoiceDetail() {
@@ -24,6 +25,7 @@ export default function InvoiceDetail() {
       <div className="no-print mb-4 flex items-center justify-between">
         <button className="btn-secondary" onClick={() => nav('/invoice')}>← Kembali</button>
         <div className="flex gap-2">
+          <button className="btn-secondary" onClick={() => cetakStrukThermal(inv)}>🧾 Struk 80mm</button>
           <button className="btn-primary" onClick={() => window.print()}>🖨️ Cetak / Simpan PDF</button>
         </div>
       </div>
